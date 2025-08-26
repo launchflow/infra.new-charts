@@ -1,0 +1,75 @@
+{{- if .Values.costservice.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "infranew.name" . }}-cost-service-migration
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "1"
+    "helm.sh/hook-delete-policy": before-hook-creation
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    spec:
+      restartPolicy: OnFailure
+      initContainers:
+        - name: create-database
+          image: postgres:17
+          command: 
+            - sh
+            - -c
+            - |
+              export PGPASSWORD="$POSTGRES_PASSWORD"
+              # Wait for postgres to be ready
+              until pg_isready -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER"; do
+                echo "Waiting for postgres..."
+                sleep 2
+              done
+              # Create costdb database if it doesn't exist
+              psql -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tc "SELECT 1 FROM pg_database WHERE datname = '${COST_DB}'" | grep -q 1 || psql -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "CREATE DATABASE \"${COST_DB}\""
+          env:
+            - name: POSTGRES_HOST
+              value: "{{ include "infranew.name" . }}-postgres-service"
+            - name: POSTGRES_PORT
+              value: "5432"
+            - name: POSTGRES_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "infranew.name" . }}-postgres-config
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "infranew.name" . }}-postgres-secret
+                  key: POSTGRES_PASSWORD
+            - name: COST_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "infranew.name" . }}-postgres-config
+                  key: COST_DB
+      containers:
+        - name: migrate-cost-db
+          image: "{{ .Values.costservice.image.repository }}:{{ .Values.costservice.image.tag }}"
+          workingDir: /app
+          command: ["sh", "-c", "export DATABASE_URL=\"postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@$POSTGRES_HOST:$POSTGRES_PORT/$COST_DB\" && /usr/local/bin/diesel migration run"]
+          env:
+            - name: POSTGRES_HOST
+              value: "{{ include "infranew.name" . }}-postgres-service"
+            - name: POSTGRES_PORT
+              value: "5432"
+            - name: POSTGRES_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "infranew.name" . }}-postgres-config
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "infranew.name" . }}-postgres-secret
+                  key: POSTGRES_PASSWORD
+            - name: COST_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "infranew.name" . }}-postgres-config
+                  key: COST_DB
+{{- end }}

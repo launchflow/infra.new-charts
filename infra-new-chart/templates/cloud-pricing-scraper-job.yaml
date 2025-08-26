@@ -1,0 +1,62 @@
+{{- if .Values.costservice.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "infranew.name" . }}-cloud-pricing-scraper
+  labels:
+    app: {{ include "infranew.name" . }}-cloud-pricing-scraper
+    component: cloud-pricing-scraper
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    metadata:
+      labels:
+        app: {{ include "infranew.name" . }}-cloud-pricing-scraper
+        component: cloud-pricing-scraper
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: cloud-pricing-scraper
+          image: "{{ .Values.cloudPricingScraper.image.repository }}:{{ .Values.cloudPricingScraper.image.tag }}"
+          imagePullPolicy: {{ .Values.cloudPricingScraper.image.pullPolicy }}
+          env:
+            - name: POSTGRES_HOST
+              value: "{{ include "infranew.name" . }}-postgres-service"
+            - name: POSTGRES_PORT
+              value: "5432"
+            - name: POSTGRES_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "infranew.name" . }}-postgres-config
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "infranew.name" . }}-postgres-secret
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "infranew.name" . }}-postgres-config
+                  key: COST_DB
+            - name: DATABASE_URL
+              value: "postgresql://postgres:postgres@{{ include "infranew.name" . }}-postgres-service:5432/$(POSTGRES_DB)"
+            - name: DB_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "infranew.name" . }}-postgres-config
+                  key: POSTGRES_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "infranew.name" . }}-postgres-secret
+                  key: POSTGRES_PASSWORD
+            - name: DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "infranew.name" . }}-postgres-config
+                  key: COST_DB
+          resources:
+            {{- toYaml .Values.cloudPricingScraper.resources | nindent 12 }}
+  backoffLimit: 3
+{{- end }}

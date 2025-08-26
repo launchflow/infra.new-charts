@@ -1,0 +1,91 @@
+# Default values for infra-new-chart.
+
+nameOverride: ""
+
+infranew:
+  replicaCount: 1
+
+  image:
+    repository: us-central1-docker.pkg.dev/launchflow-docker-413018/docker/infra-new
+    pullPolicy: IfNotPresent
+    tag: "v0.0.1"
+
+  service:
+    type: ClusterIP
+    port: 80
+
+  anthropicApiKey:
+  spaceliftApiKeyId:
+  spaceliftApiKeySecret:
+
+  # i.e. https://launchflow.app.spacelift.io
+  spaceliftApiKeyEndpoint: ""
+
+  # Existing secret configuration - takes precedence over direct values
+  existingSecretAnthropicApiKey:
+  existingSecretAnthropicApiKeyKey:
+  existingSecretSpaceliftApiKeyId:
+  existingSecretSpaceliftApiKeyIdKey:
+  existingSecretSpaceliftApiKeySecret:
+  existingSecretSpaceliftApiKeySecretKey:
+
+  # Ensure the environment has access to read/write objects in the GCS bucket
+  gcsBucketName: "" # This is where chat metadata is stored
+
+  # Ensure the environment has Vertex AI User
+  googleVertexProject: "" # This is used to access the Google Vertex AI API
+
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+costservice:
+  enabled: true
+
+  image:
+    repository: us-central1-docker.pkg.dev/launchflow-docker-413018/docker/cost-service
+    pullPolicy: IfNotPresent
+    tag: "v0.0.1"
+
+  service:
+    type: ClusterIP
+    port: 8080
+
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 150m
+      memory: 256Mi
+
+cloudPricingScraper:
+  enabled: true
+
+  image:
+    repository: us-central1-docker.pkg.dev/launchflow-docker-413018/docker/cloud-pricing-scraper
+    pullPolicy: IfNotPresent
+    tag: "v0.0.1"
+
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+    requests:
+      cpu: 200m
+      memory: 2Gi
+
+postgres:
+  resources:
+    limits:
+      memory: "256Mi"
+      cpu: "500m"
+    requests:
+      memory: "128Mi"
+      cpu: "250m"
+
+  password: postgres

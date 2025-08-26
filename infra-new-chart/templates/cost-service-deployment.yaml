@@ -1,0 +1,64 @@
+{{- if .Values.costservice.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "infranew.name" . }}-cost-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ include "infranew.name" . }}-cost-service
+  template:
+    metadata:
+      labels:
+        app: {{ include "infranew.name" . }}-cost-service
+    spec:
+      containers:
+        - name: cost-service
+          image: "{{ .Values.costservice.image.repository }}:{{ .Values.costservice.image.tag }}"
+          imagePullPolicy: {{ .Values.costservice.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          env:
+            - name: HOST
+              value: "0.0.0.0"
+            - name: POSTGRES_HOST
+              value: "{{ include "infranew.name" . }}-postgres-service"
+            - name: POSTGRES_PORT
+              value: "5432"
+            - name: POSTGRES_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "infranew.name" . }}-postgres-config
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "infranew.name" . }}-postgres-secret
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "infranew.name" . }}-postgres-config
+                  key: COST_DB
+            - name: DATABASE_URL
+              value: "postgresql://postgres:postgres@{{ include "infranew.name" . }}-postgres-service:5432/$(POSTGRES_DB)"
+            - name: CORS_ALLOW_ORIGINS
+              value: "*"
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            {{- toYaml .Values.costservice.resources | nindent 12 }}
+{{- end }}
