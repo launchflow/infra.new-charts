@@ -7,6 +7,34 @@ spec:
   template:
     spec:
       restartPolicy: OnFailure
+      initContainers:
+        - name: create-database
+          image: postgres:17
+          command: 
+            - sh
+            - -c
+            - |
+              export PGPASSWORD="$POSTGRES_PASSWORD"
+              # Wait for postgres to be ready
+              until pg_isready -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER"; do
+                echo "Waiting for postgres..."
+                sleep 2
+              done
+          env:
+            - name: POSTGRES_HOST
+              value: "{{ include "infranew.name" . }}-postgres-service"
+            - name: POSTGRES_PORT
+              value: "5432"
+            - name: POSTGRES_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "infranew.name" . }}-postgres-config
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "infranew.name" . }}-postgres-secret
+                  key: POSTGRES_PASSWORD
       containers:
         - name: migrate-db
           image: "{{ .Values.infranew.image.repository }}:{{ .Values.infranew.image.tag | default .Chart.AppVersion }}"
