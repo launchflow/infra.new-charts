@@ -65,6 +65,7 @@ costservice:
 
 cloudPricingScraper:
   enabled: true
+  onlyFlag: "" # e.g. gcp:catalog,gcp:machine-types
 
   image:
     repository: us-central1-docker.pkg.dev/launchflow-docker-413018/docker/cloud-pricing-scraper
