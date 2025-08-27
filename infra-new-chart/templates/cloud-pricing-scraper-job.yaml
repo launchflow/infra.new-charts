@@ -19,6 +19,15 @@ spec:
         - name: cloud-pricing-scraper
           image: "{{ .Values.cloudPricingScraper.image.repository }}:{{ .Values.cloudPricingScraper.image.tag }}"
           imagePullPolicy: {{ .Values.cloudPricingScraper.image.pullPolicy }}
+          # override the command to run the scraper
+          command: 
+            - "python"
+            - "-m"
+            - "scripts.scrape"
+            {{- if .Values.cloudPricingScraper.onlyFlag }}
+            - "--only"
+            - "{{ .Values.cloudPricingScraper.onlyFlag }}"
+            {{- end }}
           env:
             - name: POSTGRES_HOST
               value: "{{ include "infranew.name" . }}-postgres-service"
