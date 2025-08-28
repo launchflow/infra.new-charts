@@ -1,4 +1,4 @@
-{{- if .Values.costservice.enabled }}
+{{- if .Values.cloudPricingScraper.enabled }}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -20,7 +20,7 @@ spec:
           image: "{{ .Values.cloudPricingScraper.image.repository }}:{{ .Values.cloudPricingScraper.image.tag }}"
           imagePullPolicy: {{ .Values.cloudPricingScraper.image.pullPolicy }}
           # override the command to run the scraper
-          command: 
+          command:
             - "python"
             - "-m"
             - "scripts.scrape"
